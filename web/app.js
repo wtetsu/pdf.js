@@ -1805,19 +1805,45 @@ function loadAndEnablePDFBug(enabledTabs) {
   });
 }
 
-function webViewerInitialized() {
-  const appConfig = PDFViewerApplication.appConfig;
-  let file;
-  if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
-    const queryString = document.location.search.substring(1);
-    const params = parseQueryString(queryString);
-    file = "file" in params ? params.file : AppOptions.get("defaultUrl");
-    validateFileURL(file);
-  } else if (PDFJSDev.test("MOZCENTRAL")) {
-    file = window.location.href.split("#")[0];
-  } else if (PDFJSDev.test("CHROME")) {
-    file = AppOptions.get("defaultUrl");
+function convertBase64ToBinary(base64) {
+  if (!base64) {
+    return null;
   }
+  var raw = window.atob(base64);
+  var rawLength = raw.length;
+  var array = new Uint8Array(new ArrayBuffer(rawLength));
+
+  for(let i = 0; i < rawLength; i++) {
+    array[i] = raw.charCodeAt(i);
+  }
+  return array;
+}
+
+async function fetchPdfData() {
+  const pdfDataKey = "**** pdf_data ****"
+  return new Promise((done) => {
+    chrome.storage.local.get([pdfDataKey], (data) => {
+      chrome.storage.local.set({[pdfDataKey]:""})
+      done(data[pdfDataKey]);
+    });
+  });
+}
+
+async function webViewerInitialized() {
+  const pdfBase64Data = await fetchPdfData();
+  const file = convertBase64ToBinary(pdfBase64Data);
+  const appConfig = PDFViewerApplication.appConfig;
+  // let file;
+  // if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
+  //   const queryString = document.location.search.substring(1);
+  //   const params = parseQueryString(queryString);
+  //   file = "file" in params ? params.file : AppOptions.get("defaultUrl");
+  //   validateFileURL(file);
+  // } else if (PDFJSDev.test("MOZCENTRAL")) {
+  //   file = window.location.href.split("#")[0];
+  // } else if (PDFJSDev.test("CHROME")) {
+  //   file = AppOptions.get("defaultUrl");
+  // }
 
   if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
     const fileInput = document.createElement("input");
