@@ -1819,18 +1819,21 @@ function convertBase64ToBinary(base64) {
   return array;
 }
 
-async function fetchPdfData() {
-  const pdfDataKey = "**** pdf_data ****"
-  return new Promise((done) => {
-    chrome.storage.local.get([pdfDataKey], (data) => {
-      chrome.storage.local.set({[pdfDataKey]:""})
-      done(data[pdfDataKey]);
+const sendMessage = async (message) => {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(response);
+      }
     });
   });
-}
+};
 
 async function webViewerInitialized() {
-  const pdfBase64Data = await fetchPdfData();
+  const id = new URLSearchParams(window.location.search).get("id");
+  const pdfBase64Data = await sendMessage({ type: "get_pdf_data", id });
   const file = convertBase64ToBinary(pdfBase64Data);
   const appConfig = PDFViewerApplication.appConfig;
   // let file;
