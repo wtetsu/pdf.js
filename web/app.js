@@ -709,6 +709,10 @@ const PDFViewerApplication = {
    *                      is opened.
    */
   async open(file, args) {
+    if (_information) {
+      _information.remove();
+      _information = null;
+    }
     if (this.pdfLoadingTask) {
       // We need to destroy already opened document.
       await this.close();
@@ -1831,9 +1835,65 @@ const sendMessage = async (message) => {
   });
 };
 
+function decideLanguage () {
+  let result = "en";
+  const languages = navigator.languages;
+  if (!languages) {
+    return result;
+  }
+  const validLanguages = ["en", "ja"]
+  for (let i = 0; i < languages.length; i++) {
+    const lang = languages[i].toLowerCase().split("-")[0];
+    if (validLanguages.includes(lang)) {
+      result = lang;
+      break;
+    }
+  }
+  return result;
+};
+
+function getMessage(lang) {
+  if (lang === "ja") {
+    return 'PDFファイルを右上の"Open File"から選択、またはこの画面にドラッグドロップしてください。\n(Web上のPDFファイルをブラウザで開いた状態でMouse Dictionaryを起動することも可能です)'
+  }
+  return 'Select a PDF file from the "Open File" menu, or drag and drop onto this screen. \n(You can also open this screen by invoking Mouse Dictionary on a PDF document on the web)'
+}
+
+function showInformation() {
+  const div = document.createElement("div");
+  div.style.width = "800px";
+  div.style.position = "fixed";
+  div.style.bottom = 0;
+  div.style.left = "50%";
+  div.style.backgroundColor = "#FFFFFF";
+  div.style.opacity = 0.9;
+  div.style.textAlign = "center";
+  div.style.fontSize = "large";
+  div.style.zIndex = 999999999;
+  div.style.transform = "translate(-50%, -50%)";
+  div.style.borderRadius = "4px";
+  div.style.padding = "20px";
+
+  const message = getMessage(decideLanguage())
+  const pre = document.createElement("pre");
+  pre.innerText = message;
+  div.appendChild(pre);
+
+  document.body.appendChild(div);
+
+  return div;
+}
+
+let _information = null;
+
 async function webViewerInitialized() {
   const id = new URLSearchParams(window.location.search).get("id");
-  const pdfBase64Data = await sendMessage({ type: "get_pdf_data", id });
+  let pdfBase64Data;
+  if (id) {
+    pdfBase64Data = await sendMessage({type: "get_pdf_data",id});
+  } else {
+    _information = showInformation();
+  }
   const file = convertBase64ToBinary(pdfBase64Data);
   const appConfig = PDFViewerApplication.appConfig;
   // let file;
