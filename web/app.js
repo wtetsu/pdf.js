@@ -1854,9 +1854,9 @@ function decideLanguage () {
 
 function getMessage(lang) {
   if (lang === "ja") {
-    return 'PDFファイルを右上の"Open File"から選択、またはこの画面にドラッグドロップしてください。\n(Web上のPDFファイルをブラウザで開いた状態でMouse Dictionaryを起動することも可能です)'
+    return 'PDFファイルを右上の"Open File"から選択、またはこの画面にドラッグドロップしてください。\n(Web上のPDFファイル上でMouse Dictionaryを起動することも可能です)'
   }
-  return 'Select a PDF file from the "Open File" menu, or drag and drop onto this screen. \n(You can also open this screen by invoking Mouse Dictionary on a PDF document on the web)'
+  return 'Select a PDF file from "Open File", or drag and drop onto this screen. \n(You can also invoke Mouse Dictionary on a PDF document on the web)'
 }
 
 function showInformation() {
