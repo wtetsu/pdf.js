@@ -705,12 +705,27 @@ const PDFViewerApplication = {
   async run(config) {
     await this.initialize(config);
 
+    // Mouse Dictionary:
+    // If id is present in the URL, fetch the PDF data and open it.
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (id) {
+      const msg = { type: "get_pdf_data", id };
+      // eslint-disable-next-line no-undef
+      const pdfBase64Data = await chrome.runtime.sendMessage(msg);
+      const data = convertBase64ToBinary(pdfBase64Data);
+      this.open({ data });
+    } else {
+      this._information = showInformation();
+    }
+
     const { appConfig, eventBus } = this;
     let file;
     if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
       const queryString = document.location.search.substring(1);
       const params = parseQueryString(queryString);
-      file = params.get("file") ?? AppOptions.get("defaultUrl");
+      // Mouse Dictionary: Disable the default URL
+      // file = params.get("file") ?? AppOptions.get("defaultUrl");
+      file = params.get("file");
       validateFileURL(file);
     } else if (PDFJSDev.test("MOZCENTRAL")) {
       file = window.location.href;
@@ -1068,6 +1083,11 @@ const PDFViewerApplication = {
    * @returns {Promise} - Promise that is resolved when the document is opened.
    */
   async open(args) {
+    // Mouse Dictionary: Remove the information box
+    if (this._information) {
+      this._information.remove();
+      this._information = null;
+    }
     if (this.pdfLoadingTask) {
       // We need to destroy already opened document.
       await this.close();
@@ -3062,6 +3082,67 @@ function beforeUnload(evt) {
   evt.preventDefault();
   evt.returnValue = "";
   return false;
+}
+
+function convertBase64ToBinary(base64) {
+  if (!base64) {
+    return null;
+  }
+  const raw = window.atob(base64);
+  const rawLength = raw.length;
+  const array = new Uint8Array(new ArrayBuffer(rawLength));
+
+  for (let i = 0; i < rawLength; i++) {
+    array[i] = raw.charCodeAt(i);
+  }
+  return array;
+}
+
+function decideLanguage() {
+  let result = "en";
+  const languages = navigator.languages;
+  if (!languages) {
+    return result;
+  }
+  const validLanguages = ["en", "ja"];
+  for (let i = 0; i < languages.length; i++) {
+    const lang = languages[i].toLowerCase().split("-")[0];
+    if (validLanguages.includes(lang)) {
+      result = lang;
+      break;
+    }
+  }
+  return result;
+}
+
+function getMessage(lang) {
+  if (lang === "ja") {
+    return '右上メニュー"開く"からPDF選択、またはここにドラッグ＆ドロップしてください。\n(Web上のPDFファイル上でMouse Dictionaryを起動することも可能です)';
+  }
+  return "Select PDF from 'Open' in top-right menu, or drag and drop here.\n(You can also invoke Mouse Dictionary on a PDF document on the web)";
+}
+
+function showInformation() {
+  const div = document.createElement("div");
+  div.style.width = "800px";
+  div.style.position = "fixed";
+  div.style.bottom = 0;
+  div.style.left = "50%";
+  div.style.backgroundColor = "#FFFFFF";
+  div.style.opacity = 0.9;
+  div.style.textAlign = "center";
+  div.style.fontSize = "large";
+  div.style.zIndex = 999999999;
+  div.style.transform = "translate(-50%, -50%)";
+  div.style.borderRadius = "4px";
+  div.style.padding = "20px";
+
+  const message = getMessage(decideLanguage());
+  const pre = document.createElement("pre");
+  pre.innerText = message;
+  div.append(pre);
+  document.body.append(div);
+  return div;
 }
 
 export { PDFViewerApplication };
